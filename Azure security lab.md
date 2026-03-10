@@ -1,5 +1,6 @@
-# COMPLETE LAB COMMANDS WITH LIVE EXAMPLES - HIGHLIGHTED!
 
+# COMPLETE LAB COMMANDS WITH LIVE EXAMPLES - HIGHLIGHTED!
+## Vaulted Keys and Hidden Blobs
 ## COMMAND 1: LOGIN TO AZURE
 ```cmd
 az login --service-principal -u 76e1a895-1f05-4165-83ab-98eed07bed86 -p 6LU8Q~OjXfR3z8ZTOHqd0MpE8r1bGs0qStavaacZ --tenant f2a33211-e46a-4c92-b84d-aff06c2cd13f
